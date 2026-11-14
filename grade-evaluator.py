@@ -42,6 +42,11 @@ def evaluate_grades(data):
     """
     print("\n--- Processing Grades ---")
     
+    # If CSV is empty (After archival)
+    if len(data) == 0:
+        print("Error: The file has no assignment records. Add grades before running.")
+        sys.exit(1)
+
     formative = 0
     summative = 0
     total_weight = 0
