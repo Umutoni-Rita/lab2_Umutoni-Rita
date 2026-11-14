@@ -19,13 +19,17 @@ def load_csv_data():
         with open(filename, mode='r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
+                try:
                 # Convert numeric fields to floats for calculations
-                assignments.append({
-                    'assignment': row['assignment'],
-                    'group': row['group'],
-                    'score': float(row['score']),
-                    'weight': float(row['weight'])
-                })
+                    assignments.append({
+                        'assignment': row['assignment'],
+                        'group': row['group'],
+                        'score': float(row['score']),
+                        'weight': float(row['weight'])
+                    })
+                except (ValueError, TypeError, KeyError):
+                    print(f"Error: Invalid row in CSV: {row}")
+                    sys.exit(1)
         return assignments
     except Exception as e:
         print(f"An error occurred while reading the file: {e}")
@@ -40,22 +44,28 @@ def evaluate_grades(data):
     
     formative = 0
     summative = 0
+    total_weight = 0
     for assignment in data:
-    # TODO: a) Check if all scores are percentage based (0-100)
+    # a) Check if all scores are percentage based (0-100)
         score = assignment['score']
         if score < 0 or score > 100:
             print(f"Error: Score for assignment '{assignment['assignment']}' is out of range (0-100).")
             sys.exit(1)
-    # TODO: b) Validate total weights (Total=100, Summative=40, Formative=60)
+            
+    # b) Validate total weights (Total=100, Summative=40, Formative=60)
         if assignment['group'] == "Formative":
             formative += assignment['weight']
         elif assignment['group'] == "Summative":
             summative += assignment['weight']
+        total_weight += assignment['weight']
     if formative != 60 or summative != 40:
         print(f"Error: Total weights are incorrect. Formative: {formative}, Summative: {summative}. Expected: Formative=60, Summative=40.")
         sys.exit(1)
+    if total_weight != 100:
+        print(f"Error: Total weight of all assignments is {total_weight}, but it should be 100.")
+        sys.exit(1)
         
-    # TODO: c) Calculate the Final Grade and GPA
+    # c) Calculate the Final Grade and GPA
     final_grade = 0
     for assignment in data:
         name = assignment['assignment']
@@ -67,7 +77,8 @@ def evaluate_grades(data):
     print(f"Final Grade: {final_grade:.2f}%")
     gpa = (final_grade / 100) * 5
     print(f"GPA: {gpa:.2f}")
-    # TODO: d) Determine Pass/Fail status (>= 50% in BOTH categories)
+    
+    # d) Determine Pass/Fail status (>= 50% in BOTH categories)
     formative_score = 0
     summative_score = 0
     final_decision = ""
@@ -76,11 +87,17 @@ def evaluate_grades(data):
             formative_score += (assignment['score'] / 100) * assignment['weight']
         elif assignment['group'] == "Summative":
             summative_score += (assignment['score'] / 100) * assignment['weight']
-    if (formative_score * 100 >= 50) and (summative_score * 100 >= 50):
+            
+    formative_percent = (formative_score / formative) * 100
+    summative_percent = (summative_score / summative) * 100
+    print(f"Formative: {formative_percent:.2f}%  Summative: {summative_percent:.2f}%")
+
+    if formative_percent >= 50 and summative_percent >= 50:
         final_decision = "PASSED"
     else:
         final_decision = "FAILED"
-    # TODO: e) Check for failed formative assignments (< 50%)
+
+    # e) Check for failed formative assignments (< 50%)
     #          and determine which one(s) have the highest weight for resubmission.
     failed_formative = []
 
@@ -100,7 +117,8 @@ def evaluate_grades(data):
         for assignment in failed_formative:
             if assignment['weight'] == highest_weight:
                 resubmission_options.append(assignment)
-    # TODO: f) Print the final decision (PASSED / FAILED) and resubmission options
+                
+    # f) Print the final decision (PASSED / FAILED) and resubmission options
     print(f"Final decision: You {final_decision}")
     print("Resubmission options:")
     for assignment in resubmission_options:
